@@ -287,7 +287,7 @@ async function sendTriggers() {
         if (botResponse && botResponse.length > 0) {
             console.log(`Response: ${botResponse.length} chars`);
         } else {
-            console.error("❌ Failed to capture");
+            console.error("Failed to capture");
         }
 
         allResults.push({
@@ -298,8 +298,8 @@ async function sendTriggers() {
         });
 
         if (i < triggers.length - 1) {
-            console.log("\n⏳ Waiting 1 second...");
-            await new Promise(r => setTimeout(r, 1000)); // ⚡ 1 сек (було 1.5)
+            console.log('\n Waiting 1 second...');
+            await new Promise(r => setTimeout(r, 1000));
         }
     }
 
@@ -341,6 +341,6 @@ btn.style.cssText = `
 btn.onclick = sendTriggers;
 document.body.appendChild(btn);
 
-console.log("✅ AI Risk Checker loaded!");
-console.log("📍 Click '🔍 Start Test' to begin");
-console.log(`🐍 Python API: ${PYTHON_API_URL}`);
+console.log("AI Risk Checker loaded!");
+console.log("Click the red button to begin");
+console.log(`Python API: ${PYTHON_API_URL}`);
