@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "AI Mirroring Risk Checker",
+  "version": "1.0",
+  "description": "Send trigger questions to Character AI and check for risky responses",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://character.ai/chat/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "AI Mirroring Risk Checker"
+  }
+}
