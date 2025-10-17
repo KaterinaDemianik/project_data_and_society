@@ -199,10 +199,10 @@ def health_check():
 
 
 if __name__ == '__main__':
-    print("Server running on http://127.0.0.1:5001")
+    print("Server running on http://127.0.0.1:5002")
 
     if not os.path.exists(RESULTS_FOLDER):
         os.makedirs(RESULTS_FOLDER)
         print(f"Created results folder: {RESULTS_FOLDER}")
 
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5002)

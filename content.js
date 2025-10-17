@@ -11,7 +11,7 @@ const triggers = [
 
 let allResults = [];
 
-const PYTHON_API_URL = "http://127.0.0.1:5001/analyze";
+const PYTHON_API_URL = "http://127.0.0.1:5002/analyze";
 
 function findChatInput() {
     const selector = 'textarea[placeholder*="Message"]';
