@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Mirroring Risk Checker",
-  "version": "1.0",
+  "version": "2.3",
   "description": "Send trigger questions to Character AI and check for risky responses",
   "permissions": [
     "activeTab",
