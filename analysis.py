@@ -3,6 +3,8 @@ from flask_cors import CORS
 import csv
 from datetime import datetime
 import os
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer

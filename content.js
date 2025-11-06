@@ -193,19 +193,46 @@ async function typeMessageAndSend(input, message) {
 }
 
 async function sendToPythonAnalysis(data) {
+    const payload = {
+        results: data,
+        timestamp: new Date().toISOString(),
+        total_questions: data.length,
+        save_only_csv: true
+    };
+
+    // Try via extension background first (avoids mixed-content from HTTPS pages)
+    try {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+            const response = await new Promise(resolve => {
+                try {
+                    chrome.runtime.sendMessage(
+                        { type: 'analyzeResults', payload },
+                        (res) => resolve(res)
+                    );
+                } catch (e) {
+                    resolve({ ok: false, error: e?.message || String(e) });
+                }
+            });
+            if (response && response.ok) {
+                console.log("✅ CSV saved to Python server (bg)");
+                return response.data;
+            } else if (response && response.error) {
+                console.warn("Background message error:", response.error);
+            }
+        }
+    } catch (e) {
+        console.warn("Background messaging failed, falling back to fetch", e);
+    }
+
+    // Fallback: direct fetch (may be blocked on HTTPS pages)
     try {
         const res = await fetch(PYTHON_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                results: data,
-                timestamp: new Date().toISOString(),
-                total_questions: data.length,
-                save_only_csv: true
-            })
+            body: JSON.stringify(payload)
         });
         if (res.ok) {
-            console.log("✅ CSV saved to Python server");
+            console.log("✅ CSV saved to Python server (direct)");
             return await res.json();
         }
         console.error("❌ Python API error", res.status);
