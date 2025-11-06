@@ -241,9 +241,99 @@ async function sendToPythonAnalysis(data) {
     }
 }
 
+
+async function checkHealth() {
+    // Try background route first
+    try {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+            const response = await new Promise(resolve => {
+                try {
+                    chrome.runtime.sendMessage(
+                        { type: 'healthCheck' },
+                        (res) => resolve(res)
+                    );
+                } catch (e) {
+                    resolve({ ok: false, error: e?.message || String(e) });
+                }
+            });
+            if (response && response.ok) return true;
+        }
+    } catch (e) {
+        // ignore, fallback to fetch
+    }
+
+    // Fallback direct fetch
+    try {
+        const res = await fetch('http://127.0.0.1:5002/health');
+        return res.ok;
+    } catch (_) {
+        return false;
+    }
+}
+
+function showResultsModal(summary) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10002;
+        display: flex; align-items: center; justify-content: center;
+    `;
+    const box = document.createElement('div');
+    box.style.cssText = `
+        background: #fff; padding: 18px 20px; border-radius: 10px; min-width: 320px; max-width: 480px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.2); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+    `;
+    const title = document.createElement('h3');
+    title.textContent = 'Результати аналізу';
+    title.style.cssText = 'margin: 0 0 10px; font-size: 18px;';
+    const list = document.createElement('div');
+    list.style.cssText = 'font-size: 14px; line-height: 1.5; margin-bottom: 12px; white-space: pre-line;';
+    const lines = [
+        `Питань: ${summary?.total_questions ?? '—'}`,
+        `Відповідей AI: ${summary?.ai_responses ?? '—'}`,
+        `Середній настрій (людина): ${summary?.average_user_sentiment ?? '—'}`,
+        `Середній настрій (AI): ${summary?.average_ai_sentiment ?? '—'}`,
+        `Середній розрив настроїв: ${summary?.average_sentiment_gap ?? '—'}`,
+    ];
+    list.textContent = lines.join('\n');
+
+    const links = document.createElement('div');
+    links.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;';
+    if (summary?.csv_url) {
+        const a = document.createElement('a');
+        a.href = summary.csv_url; a.target = '_blank';
+        a.textContent = 'Відкрити CSV';
+        a.style.cssText = 'background:#0d6efd;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;';
+        links.appendChild(a);
+    }
+    if (summary?.chart_url) {
+        const a = document.createElement('a');
+        a.href = summary.chart_url; a.target = '_blank';
+        a.textContent = 'Відкрити графік';
+        a.style.cssText = 'background:#198754;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;';
+        links.appendChild(a);
+    }
+
+    const close = document.createElement('button');
+    close.textContent = 'Закрити';
+    close.style.cssText = 'background:#6c757d;color:#fff;padding:8px 10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;';
+    close.onclick = () => document.body.removeChild(overlay);
+
+    box.appendChild(title);
+    box.appendChild(list);
+    box.appendChild(links);
+    box.appendChild(close);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
 async function sendTriggers() {
     allResults = [];
     console.log("🎬 Starting scenario...");
+    const healthy = await checkHealth();
+    if (!healthy) {
+        alert('Сервер аналізу не доступний. Запустіть Python сервер (analysis.py) на http://127.0.0.1:5002 та спробуйте знову.');
+        return;
+    }
 
     for (let i = 0; i < triggers.length; i++) {
         const question = triggers[i];
@@ -276,8 +366,12 @@ async function sendTriggers() {
     }
 
     console.log("✅ Dialogue finished! Total responses:", allResults.length);
-    await sendToPythonAnalysis(allResults);
-    alert("Перевірка завершена! Збережено відповідей: " + allResults.length);
+    const summary = await sendToPythonAnalysis(allResults);
+    if (summary && summary.status === 'success') {
+        showResultsModal(summary);
+    } else {
+        alert("Перевірка завершена, але не вдалося отримати підсумки від сервера.");
+    }
 }
 
 const oldBtn = document.getElementById('start-test-btn');

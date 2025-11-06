@@ -20,4 +20,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
     return true; // keep port open for async response
   }
+  if (message?.type === 'healthCheck') {
+    (async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5002/health', { method: 'GET' });
+        if (!res.ok) {
+          sendResponse({ ok: false, error: `HTTP ${res.status}` });
+          return;
+        }
+        const data = await res.json();
+        sendResponse({ ok: true, data });
+      } catch (e) {
+        sendResponse({ ok: false, error: e?.message || String(e) });
+      }
+    })();
+    return true;
+  }
 });

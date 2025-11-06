@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import csv
 from datetime import datetime
@@ -167,6 +167,10 @@ def analyze():
         if chart_path:
             print(f"Chart file: {chart_filename}")
         print(f"{'=' * 60}\n")
+        
+        base_url = request.host_url.rstrip('/')
+        csv_url = f"{base_url}/results/{csv_filename}"
+        chart_url = f"{base_url}/results/{chart_filename}" if chart_path else None
 
         return jsonify({
             'status': 'success',
@@ -177,6 +181,8 @@ def analyze():
             'average_sentiment_gap': round(avg_sentiment_gap, 3),
             'csv_file': csv_filename,
             'chart_file': chart_filename if chart_path else None,
+            'csv_url': csv_url,
+            'chart_url': chart_url,
             'message': 'Analysis complete with sentiment chart'
         })
 
@@ -198,6 +204,13 @@ def health_check():
         'results_folder': RESULTS_FOLDER,
         'timestamp': datetime.now().isoformat()
     })
+
+
+
+@app.route('/results/<path:filename>', methods=['GET'])
+def serve_results(filename):
+    return send_from_directory(RESULTS_FOLDER, filename, as_attachment=False)
+
 
 
 if __name__ == '__main__':
