@@ -107,7 +107,7 @@ function isBotTyping() {
     return false;
 }
 
-async function waitForBotResponse(lastUserMessage, timeout = 45000) {
+async function waitForBotResponse(lastUserMessage, timeout = 90000) {
     console.log("⏳ Waiting for bot response...");
     const startTime = Date.now();
     let lastMessageText = '';
