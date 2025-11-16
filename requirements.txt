@@ -2,4 +2,8 @@ Flask
 flask-cors
 matplotlib
 numpy
+pandas
+openai
+python-dotenv
 vaderSentiment
+seaborn
