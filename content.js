@@ -111,8 +111,8 @@ function getAllMessages() {
 }
 
 async function waitForBotResponse(lastUserMessage, timeout = 90000) {
-    console.log("Waiting for bot response... (new robust logic, 4s inactivity timeout)");
-    const inactivityTimeout = 6000;
+    console.log("Waiting for bot response... (new robust logic, 6s inactivity timeout)");
+    const inactivityTimeout = 10000; // 6 seconds
 
     return new Promise((resolve, reject) => {
         const startTime = Date.now();
@@ -291,66 +291,80 @@ function showResultsModal(summary) {
         box-shadow: 0 6px 24px rgba(0,0,0,0.2); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
     `;
     const title = document.createElement('h3');
-    title.textContent = 'Етичний аналіз (LLM-Суддя)';
+    title.textContent = 'Ethical Analysis (LLM-Judge)';
     title.style.cssText = 'margin: 0 0 10px; font-size: 18px;';
 
     const list = document.createElement('div');
     list.style.cssText = 'font-size: 14px; line-height: 1.6; margin-bottom: 12px; white-space: pre-line;';
 
     let riskColor = '#111';
-    if (summary?.risk_label === '🔴 Високий ризик') riskColor = '#E74C3C';
-    else if (summary?.risk_label === '🟡 Середній ризик') riskColor = '#F39C12';
-    else if (summary?.risk_label === '🟢 Низький ризик') riskColor = '#27AE60';
+    const riskLabel = summary?.risk_label || 'N/A';
 
-    const riskLine = `Загальний ризик: <strong style="color: ${riskColor};">${summary?.risk_label ?? 'N/A'} (Score: ${summary?.risk_score ?? 'N/A'})</strong>`;
+    // Clean risk label from emojis if present
+    const cleanRiskLabel = riskLabel.replace(/[🔴🟡🟢]/g, '').trim();
+
+    if (cleanRiskLabel.includes('High') || cleanRiskLabel.includes('Високий')) {
+        riskColor = '#E74C3C';
+    } else if (cleanRiskLabel.includes('Medium') || cleanRiskLabel.includes('Середній')) {
+        riskColor = '#F39C12';
+    } else if (cleanRiskLabel.includes('Low') || cleanRiskLabel.includes('Низький')) {
+        riskColor = '#27AE60';
+    }
+
+    const riskScore = summary?.risk_score ?? 'N/A';
+    const riskLine = `Overall Risk: <strong style="color: ${riskColor};">${cleanRiskLabel} (Score: ${riskScore})</strong>`;
 
     const counts = summary?.counts || {};
 
-    // const lines = [
-    //     riskLine,
-    //     `Всього кроків проаналізовано: ${summary?.total_pairs ?? '—'}`,
-    //     `---`,
-    //     `🔴 Шкідлива Згода: ${counts['HARMFUL_AGREEMENT'] || 0}`,
-    //     `🟠 Шкідлива Раціоналізація: ${counts['HARMFUL_RATIONALIZATION'] || 0}`,
-    //     `🟢 Безпечна Валідація: ${counts['SAFE_VALIDATION'] || 0}`,
-    //     `✅ Безпечне Перенаправлення: ${counts['SAFE_REDIRECTION'] || 0}`,
-    //     `⚪ Нейтрально: ${counts['NEUTRAL'] || 0}`,
-    // ];
+    // Build lines array with correct spelling
+    const lines = [
+        riskLine,
+        `Total turns analyzed: ${summary?.total_pairs ?? '—'}`,
+        `---`,
+        `🔴 Harmful Agreement: ${counts['HARMFUL_AGREEMENT'] || 0}`,
+        `🟠 Harmful Rationalization: ${counts['HARMFUL_RATIONALIZATION'] || 0}`,
+        `🟢 Safe Validation: ${counts['SAFE_VALIDATION'] || 0}`,
+        `✅ Safe Redirection: ${counts['SAFE_REDIRECTION'] || 0}`,
+        `⚪ Neutral: ${counts['NEUTRAL'] || 0}`,
+    ];
 
     if (counts['ERROR_API_CALL'] || counts['ERROR_API_KEY_MISSING']) {
         lines.push(`---`);
-        lines.push(`ПОМИЛКИ API: ${counts['ERROR_API_CALL'] || 0}`);
-        lines.push(`ПОМИЛКИ КЛЮЧА: ${counts['ERROR_API_KEY_MISSING'] || 0}`);
+        lines.push(`⚠️ API Errors: ${counts['ERROR_API_CALL'] || 0}`);
+        lines.push(`⚠️ API Key Errors: ${counts['ERROR_API_KEY_MISSING'] || 0}`);
     }
 
-    list.innerHTML = lines.join('\n');
+    list.innerHTML = lines.join('<br>');
 
     const links = document.createElement('div');
     links.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;';
 
     if (summary?.csv_url) {
         const a = document.createElement('a');
-        a.href = summary.csv_url; a.target = '_blank';
-        a.textContent = 'Відкрити CSV (з аналізом)';
-        a.style.cssText = 'background:#0d6efd;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;';
+        a.href = summary.csv_url;
+        a.target = '_blank';
+        a.textContent = 'Open CSV (with Analysis)';
+        a.style.cssText = 'background:#0d6efd;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;';
         links.appendChild(a);
     }
+
     if (summary?.chart_url) {
         const a = document.createElement('a');
-        a.href = summary.chart_url; a.target = '_blank';
-        a.textContent = 'Відкрити графік аналізу';
-        a.style.cssText = 'background:#198754;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;';
+        a.href = summary.chart_url;
+        a.target = '_blank';
+        a.textContent = 'Open Analysis Chart';
+        a.style.cssText = 'background:#198754;color:#fff;padding:8px 10px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;';
         links.appendChild(a);
     } else {
         const p = document.createElement('p');
-        p.textContent = 'Посилання на графік: (не згенеровано)';
-        p.style.cssText = 'font-size: 12px; color: #666; margin: 5px 0;';
+        p.textContent = 'Chart: (not generated)';
+        p.style.cssText = 'font-size: 12px; color: #999; margin: 5px 0;';
         links.appendChild(p);
     }
 
     const close = document.createElement('button');
-    close.textContent = 'Закрити';
-    close.style.cssText = 'background:#6c757d;color:#fff;padding:8px 10px;border:none;border-radius:6px;font-weight:700;cursor:pointer;';
+    close.textContent = 'Close';
+    close.style.cssText = 'background:#6c757d;color:#fff;padding:8px 12px;border:none;border-radius:6px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;';
     close.onclick = () => document.body.removeChild(overlay);
 
     box.appendChild(title);
@@ -366,7 +380,7 @@ async function sendTriggers() {
     console.log("Starting scenario...");
     const healthy = await checkHealth();
     if (!healthy) {
-        alert('Сервер аналізу не доступний. Запустіть Python сервер (analysis.py) на http://127.0.0.1:5002 та спробуйте знову.');
+        alert('Analysis server is not available. Please start the Python server (analysis.py) on http://127.0.0.1:5002 and try again.');
         return;
     }
 
@@ -403,7 +417,7 @@ async function sendTriggers() {
     if (summary && summary.status === 'success') {
         showResultsModal(summary);
     } else {
-        alert("Перевірка завершена, але не вдалося отримати підсумки від сервера.");
+        alert("Test complete, but could not retrieve summary from server.");
     }
 }
 
@@ -411,7 +425,7 @@ const oldBtn = document.getElementById('start-test-btn');
 if (oldBtn) oldBtn.remove();
 const btn = document.createElement("button");
 btn.id = 'start-test-btn';
-btn.innerText = "Перевірити схильність до ризику";
+btn.innerText = "Check Risk Tendency";
 btn.style.cssText = `
     position: fixed; top: 20px; right: 150px;
     z-index: 10000;
@@ -437,7 +451,7 @@ function showScenarioSelection() {
         max-width: 300px;
     `;
     const title = document.createElement("h3");
-    title.innerText = "Оберіть тему:";
+    title.innerText = "Select a Topic:";
     title.style.marginBottom = "15px";
     box.appendChild(title);
     Object.keys(scenarios).forEach(name => {
@@ -458,7 +472,7 @@ function showScenarioSelection() {
         box.appendChild(optBtn);
     });
     const cancel = document.createElement("button");
-    cancel.innerText = "Скасувати";
+    cancel.innerText = "Cancel";
     cancel.style.cssText = `
         margin-top: 10px;
         background: #ccc;
